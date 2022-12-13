@@ -48,9 +48,14 @@ def getBrake(client):
 
 """Position on Runway"""
 
-def getStartXY():
+def getStartXY(mode='land'):
     """Get Start x and y values in the local coordinate frame"""
-    return -25159.26953125, 33689.8125
+    if mode == 'taxi':
+        return -25159.26953125, 33689.8125
+    elif mode == 'land':
+        return -28408.998046875, 36022.03515625
+    else:
+        raise ValueError('Unexpected mode {mode} for getting start position')
 
 def rotateToHome(x, y):
     """Rotate to the home coordinate frame.
@@ -86,7 +91,7 @@ def homeToLocal(x, y):
             x: x-value in the home coordinate frame
             y: y-value in the home coordinate frame
     """
-    
+
     # Rotate back
     rotx, roty = rotateToLocal(x, y)
 
@@ -95,7 +100,7 @@ def homeToLocal(x, y):
     transx = startX - rotx
     transy = startY - roty
 
-    return transx, transy 
+    return transx, transy
 
 def localToHome(x, y):
     """Get the home coordinates of the aircraft from the local coordinates.
@@ -104,7 +109,7 @@ def localToHome(x, y):
             x: x-value in the local coordinate frame
             y: y-value in the local coordinate frame
     """
-    
+
     # Translate to make start x and y the origin
     startX, startY = getStartXY()
     transx = startX - x
@@ -115,14 +120,14 @@ def localToHome(x, y):
     return rotx, roty
 
 def getHomeState(client):
-    """Get the aircraft's current x and y position and heading in the 
+    """Get the aircraft's current x and y position and heading in the
     home frame. The x-value represents crosstrack error,the y-value represents
     downtrack position, and theta is the heading error.
 
         Args:
             client: XPlane Client
     """
-    
+
     psi = client.getDREF("sim/flightmodel/position/psi")[0]
     x = client.getDREF("sim/flightmodel/position/local_x")[0]
     y = client.getDREF("sim/flightmodel/position/local_z")[0]
@@ -156,10 +161,11 @@ def setHomeState(client, x, y, theta):
     # Place perfectly on the ground
     # Pause for a bit for it to move
     time.sleep(0.02)
+    startAGL = 1000 # m; initial above ground level
     curr_agly = client.getDREF("sim/flightmodel/position/y_agl")[0]
     curr_localy = client.getDREF("sim/flightmodel/position/local_y")[0]
     client.sendDREF("sim/flightmodel/position/local_y",
-                    curr_localy - curr_agly)
+                    curr_localy - curr_agly + startAGL)
 
 def getPercDownRunway(client):
     """Get the percent down the runway of the main aircraft
@@ -184,9 +190,9 @@ def reset(client, cteInit=0, heInit=0, dtpInit=0, noBrake=True):
             heInit: initial heading error (degrees)
             dtpInit: initial downtrack position (meters)
     """
-    
+
     client.pauseSim(True)
-    # lat,lon, alt, pitch, roll, heading = getStartPosition(cteInit, heInit, drInit); 
+    # lat,lon, alt, pitch, roll, heading = getStartPosition(cteInit, heInit, drInit);
 
     # Turn off joystick "+" mark from screen
     client.sendDREF("sim/operation/override/override_joystick", 1)
@@ -235,7 +241,7 @@ def reset(client, cteInit=0, heInit=0, dtpInit=0, noBrake=True):
 
 def saveState(client, folder, filename='test.csv'):
     """Save the current state of the simulator to a CSV file.
-        
+
         Pulls all relevant DREFs and stores them in a CSV.
         Can use loadState to set simulator back to a saved state.
 
