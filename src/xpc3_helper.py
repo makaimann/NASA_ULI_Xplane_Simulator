@@ -53,7 +53,7 @@ def getStartXY(mode='land'):
     if mode == 'taxi':
         return -25159.26953125, 33689.8125
     elif mode == 'land':
-        return -28408.998046875, 36022.03515625
+        return -35285.421875, 40957.0234375
     else:
         raise ValueError('Unexpected mode {mode} for getting start position')
 
@@ -161,7 +161,7 @@ def setHomeState(client, x, y, theta):
     # Place perfectly on the ground
     # Pause for a bit for it to move
     time.sleep(0.02)
-    startAGL = 1000 # m; initial above ground level
+    startAGL = 1005.84 - 342.31 # m; initial elevation - ground elevation (converting to AGL)
     curr_agly = client.getDREF("sim/flightmodel/position/y_agl")[0]
     curr_localy = client.getDREF("sim/flightmodel/position/local_y")[0]
     client.sendDREF("sim/flightmodel/position/local_y",
@@ -231,10 +231,10 @@ def reset(client, cteInit=0, heInit=0, dtpInit=0, noBrake=True):
     # Set fuel mixture for engine
     client.sendDREF("sim/flightmodel/engine/ENGN_mixt", 0.61)
 
-    # Set speed of aircraft to be 5 m/s in current heading direction
+    # Set speed of aircraft to be 60 m/s in current heading direction
     heading = 53.7 - heInit
-    client.sendDREF("sim/flightmodel/position/local_vx", 5.0*np.sin(heading*np.pi/180.0))
-    client.sendDREF("sim/flightmodel/position/local_vz", -5.0*np.cos(heading*np.pi/180.0))
+    client.sendDREF("sim/flightmodel/position/local_vx", 60.0*np.sin(heading*np.pi/180.0))
+    client.sendDREF("sim/flightmodel/position/local_vz", -60.0*np.cos(heading*np.pi/180.0))
 
     # Reset fuel levels
     client.sendDREFs(["sim/flightmodel/weight/m_fuel1","sim/flightmodel/weight/m_fuel2"],[232,232])
