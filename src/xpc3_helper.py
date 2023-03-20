@@ -483,3 +483,17 @@ def shift_forward(client, d):
     return client.sendDREFs(["sim/flightmodel/position/local_x", "sim/flightmodel/position/local_z"], [x + dx, z + dz])
 
 
+def dist_from_glideslope(client):
+    '''
+    Computes the distance from the glideslope defined here: https://aeronav.faa.gov/d-tpp/2302/00961RRZ4.PDF
+
+    Uses the "home" coordinate frame for the runway and MSL elevation
+    '''
+
+    HUSMI = np.array([0, 0, 1005.84])
+    UBGUY = np.array([0, 3889.2, 853.44])
+
+    x, y, _ = getHomeState(client)
+    z = client.getDREF("sim/flightmodel/position/elevation")[0]
+    pos = np.array([x, y, z])
+    return np.linalg.norm(np.cross(pos - HUSMI, pos - UBGUY)) / np.linalg.norm(UBGUY - HUSMI)
