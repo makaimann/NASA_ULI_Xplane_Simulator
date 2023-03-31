@@ -485,6 +485,14 @@ def shift_forward(client, d):
 
     return client.sendDREFs(["sim/flightmodel/position/local_x", "sim/flightmodel/position/local_z"], [x + dx, z + dz])
 
+def get_glideslope_points():
+    '''
+    Returns the glideslope points defined on the approach plate: https://aeronav.faa.gov/d-tpp/2302/00961RRZ4.PDF
+    '''
+    HUSMI = np.array([0, 0, 1005.84])
+    UBGUY = np.array([0, 3889.2, 853.44])
+    return HUSMI, UBGUY
+
 def dist_from_glideslope(client):
     '''
     Computes the distance from the glideslope defined here: https://aeronav.faa.gov/d-tpp/2302/00961RRZ4.PDF
@@ -492,8 +500,7 @@ def dist_from_glideslope(client):
     Uses the "home" coordinate frame for the runway and MSL elevation
     '''
 
-    HUSMI = np.array([0, 0, 1005.84])
-    UBGUY = np.array([0, 3889.2, 853.44])
+    HUSMI, UBGUY = get_glideslope_points()
 
     x, y, _ = getHomeState(client)
     z = client.getDREF("sim/flightmodel/position/elevation")[0]
@@ -540,6 +547,18 @@ def get_autoland_statevec(client):
     '''
     Returns the state vector used in the autoland scenario
     Based on https://arc.aiaa.org/doi/10.2514/6.2021-0998
+        u      - longitudinal velocity (m/s)
+        v      - lateral velocity (m/s)
+        w      - vertical velocity (m/s)
+        p      - roll velocity (deg/s)
+        q      - pitch velocity (deg/s)
+        r      - yaw velocity (deg/s)
+        phi    - roll angle (deg)
+        theta  - pitch angle (deg)
+        psi    - yaw angle (deg)
+        x      - horizontal distance (m)
+        y      - lateral deviation (m)
+        h      - aircraft altitude (m)
     '''
 
     vel = body_frame_velocity(client)
