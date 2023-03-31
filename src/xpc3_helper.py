@@ -7,6 +7,7 @@ import math
 import xpc3
 import time
 import pandas as pd
+from scipy.spatial.transform import Rotation
 
 def sendCTRL(client, elev, aileron, rudder, throttle):
     """Sets control surface information (on the main aircraft)
@@ -482,7 +483,6 @@ def shift_forward(client, d):
 
     return client.sendDREFs(["sim/flightmodel/position/local_x", "sim/flightmodel/position/local_z"], [x + dx, z + dz])
 
-
 def dist_from_glideslope(client):
     '''
     Computes the distance from the glideslope defined here: https://aeronav.faa.gov/d-tpp/2302/00961RRZ4.PDF
@@ -497,3 +497,23 @@ def dist_from_glideslope(client):
     z = client.getDREF("sim/flightmodel/position/elevation")[0]
     pos = np.array([x, y, z])
     return np.linalg.norm(np.cross(pos - HUSMI, pos - UBGUY)) / np.linalg.norm(UBGUY - HUSMI)
+
+def body_frame_velocity(client):
+    quat = client.getDREF('sim/flightmodel/position/q')
+    # convert to scipy representation
+    # this is scalar-last format i j k <scalar>
+    rot = Rotation.from_quat(quat[[1, 2, 3, 0]])
+
+    vx = client.getDREF('sim/flightmodel/position/local_vx')
+    vy = client.getDREF('sim/flightmodel/position/local_vy')
+    vz = client.getDREF('sim/flightmodel/position/local_vz')
+    # X-Plane quaternion / localframe correspondence is
+    #   i: -z
+    #   j: x
+    #   k: -y
+    # according to https://developer.x-plane.com/article/movingtheplane/
+
+    vel_vec = [-vz, vx, -vy]
+
+    # apply the rotation and return the result
+    return rot.apply(vel_vec)
