@@ -523,23 +523,8 @@ def body_frame_velocity(client):
     vx = client.getDREF('sim/flightmodel/position/local_vx')[0]
     vy = client.getDREF('sim/flightmodel/position/local_vy')[0]
     vz = client.getDREF('sim/flightmodel/position/local_vz')[0]
-    # X-Plane quaternion / localframe correspondence is
-    #   i: -z
-    #   j: x
-    #   k: -y
-    # according to https://developer.x-plane.com/article/movingtheplane/
-    # e.g., local frame is East-Up-South and we can convert to North-East-Down
+    # local frame is East-Up-South and we convert to North-East-Down
     vel_vec = np.array([-vz, vx, -vy]).T
-
-    # TODO: figure out how to use quaternion to do this rotation
-    # # quaternion in w, i, j, k form (w is scalar)
-    # q = client.getDREF('sim/flightmodel/position/q')
-    # # convert to scipy representation
-    # # this is scalar-last format i j k <scalar>
-    # rot = Rotation.from_quat([q[1], q[2], q[3], q[0]])
-
-    # # apply the rotation and return the result
-    # return rot.apply(vel_vec)
 
     return np.matmul(R, vel_vec)
 
