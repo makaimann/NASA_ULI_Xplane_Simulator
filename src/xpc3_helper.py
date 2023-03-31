@@ -54,6 +54,8 @@ def getStartXY(mode='land'):
     if mode == 'taxi':
         return -25159.26953125, 33689.8125
     elif mode == 'land':
+        # with this as the origin,
+        # runway crossing is at y~=12464
         return -35285.421875, 40957.0234375
     else:
         raise ValueError('Unexpected mode {mode} for getting start position')
@@ -527,5 +529,48 @@ def body_frame_velocity(client):
     vel_vec = np.array([-vz, vx, -vy]).T
 
     return np.matmul(R, vel_vec)
+
+def get_autoland_runway_thresh():
+    '''
+    The runway threshold along the y-axis in the home frame
+    '''
+    return 12464
+
+def get_autoland_statevec(client):
+    '''
+    Returns the state vector used in the autoland scenario
+    Based on https://arc.aiaa.org/doi/10.2514/6.2021-0998
+    '''
+
+    vel = body_frame_velocity(client)
+
+    P = client.getDREF('sim/flightmodel/position/P')[0]
+    Q = client.getDREF('sim/flightmodel/position/Q')[0]
+    R = client.getDREF('sim/flightmodel/position/R')[0]
+
+    phi = client.getDREF('sim/flightmodel/position/phi')[0]
+    theta = client.getDREF('sim/flightmodel/position/theta')[0]
+    psi = client.getDREF('sim/flightmodel/position/psi')[0]
+
+    # runway distances (different frame than home)
+    home_x, home_y, _ = getHomeState(client)
+    x = get_autoland_runway_thresh() - home_y
+    y = -home_x
+    h = client.getDREF('sim/flightmodel/position/y_agl')[0]
+
+    return np.array([
+        vel[0],
+        vel[1],
+        vel[2],
+        P,
+        Q,
+        R,
+        phi,
+        theta,
+        psi,
+        x,
+        y,
+        h
+    ]).T
 
 
