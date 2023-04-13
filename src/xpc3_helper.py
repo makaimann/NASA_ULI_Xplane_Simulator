@@ -9,6 +9,9 @@ import time
 import pandas as pd
 from scipy.spatial.transform import Rotation
 
+# Heading to align with the runway
+HOME_HEADING = 53.7
+
 def sendCTRL(client, elev, aileron, rudder, throttle):
     """Sets control surface information (on the main aircraft)
 
@@ -136,7 +139,7 @@ def getHomeState(client):
     y = client.getDREF("sim/flightmodel/position/local_z")[0]
 
     # Rotate heading into home coordinates
-    theta = 53.7 - psi
+    theta = HOME_HEADING - psi
 
     # Get the positions in home coordinates
     rotx, roty = localToHome(x, y)
@@ -159,7 +162,7 @@ def setHomeState(client, x, y, theta):
 
     client.sendDREF("sim/flightmodel/position/local_x", localx)
     client.sendDREF("sim/flightmodel/position/local_z", localz)
-    client.sendDREF("sim/flightmodel/position/psi", 53.7 - theta)
+    client.sendDREF("sim/flightmodel/position/psi", HOME_HEADING - theta)
 
     # Place perfectly on the ground
     # Pause for a bit for it to move
@@ -380,6 +383,13 @@ def get_heading(client):
     """
     return client.getDREF("sim/flightmodel/position/psi")[0]
 
+def get_home_heading(client):
+    """
+    Get the value of the aircraft's heading in degrees from the runway
+    """
+    true_heading = get_heading(client)
+    return true_heading - HOME_HEADING
+
 def get_ground_velocity(client):
     return client.getDREF("sim/flightmodel/position/groundspeed")
 
@@ -488,6 +498,8 @@ def shift_forward(client, d):
 def get_glideslope_points():
     '''
     Returns the glideslope points defined on the approach plate: https://aeronav.faa.gov/d-tpp/2302/00961RRZ4.PDF
+
+    Defined in the Home reference frame (e.g., aligned to the runway)
     '''
     HUSMI = np.array([0, 0, 1005.84])
     UBGUY = np.array([0, 3889.2, 853.44])
@@ -506,6 +518,18 @@ def dist_from_glideslope(client):
     z = client.getDREF("sim/flightmodel/position/elevation")[0]
     pos = np.array([x, y, z])
     return np.linalg.norm(np.cross(pos - HUSMI, pos - UBGUY)) / np.linalg.norm(UBGUY - HUSMI)
+
+def heading_angle_conversion(deg):
+    '''
+    Converts a world-frame angle to a heading and vice-versa
+    The transformation is its own inverse
+    Args:
+        deg: the angle (heading) in degrees
+    Returns:
+        float: the heading (angle) in degrees
+    '''
+
+    return (90 - deg) % 360
 
 def body_frame_velocity(client):
     cos = math.cos
@@ -569,7 +593,7 @@ def get_autoland_statevec(client):
 
     phi = client.getDREF('sim/flightmodel/position/phi')[0]
     theta = client.getDREF('sim/flightmodel/position/theta')[0]
-    psi = client.getDREF('sim/flightmodel/position/psi')[0]
+    psi = get_home_heading(client)
 
     # runway distances (different frame than home)
     home_x, home_y, _ = getHomeState(client)

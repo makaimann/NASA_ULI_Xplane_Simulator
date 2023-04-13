@@ -1,26 +1,29 @@
 from autoland.pid import PID
 import math
 
+# TCH = Threshold Crossing Height
+# Set one for Grant Co Intl Airport Runway 04
+# 50 ft TCH -> m -> + the agl at that point
+GRANT_RWY4_TCH = 50 * 0.3048 + 223
+
 class GlideSlopeController:
-    def __init__(self, client, des_u, des_psi, h_thresh, gamma, dt=0.1):
+    def __init__(self, client, gamma, h_thresh=GRANT_RWY4_TCH, des_u=50., dt=0.1):
         self._client   = client
-        self._des_u    = des_u
-        self._des_psi  = des_psi
-        self._h_thresh = h_thresh # height of runway threshold
         self._gamma    = gamma    # glide slope angle
+        self._h_thresh = h_thresh # height of runway threshold
+        self._des_u    = des_u # desired longitudinal velocity (m/s)
+        self._dt       = dt
 
         self._tan_gamma = math.tan(math.radians(self._gamma))
 
         # PI controllers
-        self._psi_pid = PID(dt, kp=1., ki=1., kd=0.)
-        self._y_pid = PID(dt, kp=1., ki=1., kd=0.)
-        self._phi_pid = PID(dt, kp=1., ki=1., kd=0.)
-        self._u_pid = PID(dt, kp=1., ki=1., kd=0.)
-        self._theta_pid = PID(dt, kp=1., ki=1., kd=0.)
-        self._h_pid = PID(dt, kp=1., ki=1., kd=0.)
-        self._thrust_pid = PID(dt, kp=1., ki=1., kd=0.)
-        self._elev_pid = PID(dt, kp=1., ki=1., kd=0.)
+        # lateral
+        self._psi_pid = PID(dt, kp=1., ki=0.1, kd=0.)
+        self._y_pid = PID(dt, kp=0.5, ki=0.01, kd=0.)
+        self._phi_pid = PID(dt, kp=1., ki=0.1, kd=0.)
 
+        self._u_pid = PID(dt, kp=50., ki=5., kd=0.)
+        self._theta_pid = PID(dt, kp=0.24, ki=0.024, kd=0.)
 
     def control(self, statevec):
         '''
@@ -52,18 +55,32 @@ class GlideSlopeController:
         x, y, h = statevec
 
         # lateral control
-        err_y = y
-        err_psi = psi - self._des_psi
-        err_phi = phi
+        err_y = 0.0 - y
+        err_psi = 0.0 - psi
+        err_phi = 0.0 - phi
+
+        delta_r = self._psi_pid(err_psi) + self._y_pid(err_y)
+        delta_a = self._phi_pid(err_phi)
+        rudder = -max(-27, min(delta_r, 27))/27
+        aileron = -max(-20, min(delta_a, 20))/20
 
         # longitudinal control
-        err_u = u - self._des_u
-        h_c = self._h_thresh + x*self._tan_gamma
-        err_h = h - h_c
-        theta_c = self._theta_pid(err_h)
-        err_theta = theta - theta_c
+        err_u = self._des_u - u
 
-        # then saturate
+        fu = self._u_pid(err_u) + 5000
+        throttle = min(fu, 10000)/10000
+
+        h_c = self._h_thresh + x*self._tan_gamma
+        err_h = h_c - h
+        theta_c = self._theta_pid(err_h)
+
+        elev = (theta_c - theta)*5 - 2*q
+        if elev > 0:
+            elevator = min(elev, 30)/30
+        else:
+            elevator = max(elev, -15)/15
+
+        return elevator, aileron, rudder, throttle
+
 
         # then return
-        raise NotImplementedError('Method not completed')
