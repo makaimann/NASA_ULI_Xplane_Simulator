@@ -169,11 +169,16 @@ def setHomeState(client, x, y, theta):
     # Pause for a bit for it to move
     time.sleep(0.02)
     # startAGL = 1005.84 - 342.31 # m; initial elevation - ground elevation (converting to AGL)
-    startAGL = 891.45 # elevation for a 3 degree glideslope
-    curr_agly = client.getDREF("sim/flightmodel/position/y_agl")[0]
+    # curr_agly = client.getDREF("sim/flightmodel/position/y_agl")[0]
+    # curr_localy = client.getDREF("sim/flightmodel/position/local_y")[0]
+    # client.sendDREF("sim/flightmodel/position/local_y",
+    #                 curr_localy - curr_agly + startAGL)
+
+    startElev = 1029.45 # beginning elevation for a 3 degree glideslope
+    curr_elev = client.getDREF("sim/flightmodel/position/elevation")[0]
     curr_localy = client.getDREF("sim/flightmodel/position/local_y")[0]
-    client.sendDREF("sim/flightmodel/position/local_y",
-                    curr_localy - curr_agly + startAGL)
+    offset = curr_elev - curr_localy
+    client.sendDREF("sim/flightmodel/position/local_y", startElev - offset)
 
 def getPercDownRunway(client):
     """Get the percent down the runway of the main aircraft
@@ -601,7 +606,7 @@ def get_autoland_statevec(client):
     home_x, home_y, _ = getHomeState(client)
     x = get_autoland_runway_thresh() - home_y
     y = -home_x
-    h = client.getDREF('sim/flightmodel/position/y_agl')[0]
+    h = client.getDREF('sim/flightmodel/position/elevation')[0]
 
     return np.array([
         vel[0],

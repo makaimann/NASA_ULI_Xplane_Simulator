@@ -3,8 +3,8 @@ import math
 
 # TCH = Threshold Crossing Height
 # Set one for Grant Co Intl Airport Runway 04
-# 50 ft TCH -> m -> + the agl at that point
-GRANT_RWY4_TCH = 50 * 0.3048 + 223
+# 50 ft TCH -> m -> + the elevation at that point
+GRANT_RWY4_TCH = 50 * 0.3048 + 361.
 
 class GlideSlopeController:
     def __init__(self, client, gamma, h_thresh=GRANT_RWY4_TCH, des_u=50., dt=0.1):
@@ -13,6 +13,9 @@ class GlideSlopeController:
         self._h_thresh = h_thresh # height of runway threshold (m)
         self._des_u    = des_u # desired longitudinal velocity (m/s)
         self._dt       = dt
+
+        if dt > 0.5:
+            raise Warning("Running at a much slower dt than controller was designed for")
 
         self._tan_gamma = math.tan(math.radians(self._gamma))
 
@@ -73,8 +76,8 @@ class GlideSlopeController:
         h_c = self._h_thresh + x*self._tan_gamma
         err_h = h_c - h
         theta_c = self._theta_pid(err_h)
+        elev = (theta_c - theta)*5 - 0.05*q
 
-        elev = (theta_c - theta)*5 - 2*q
         if elev > 0:
             elevator = min(elev, 30)/30
         else:
