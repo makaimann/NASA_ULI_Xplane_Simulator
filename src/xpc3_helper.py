@@ -164,10 +164,12 @@ def setHomeState(client, x, y, theta):
     client.sendDREF("sim/flightmodel/position/local_z", localz)
     client.sendDREF("sim/flightmodel/position/psi", HOME_HEADING - theta)
 
+    # FIXME - reset doesn't work repeatedly because curr_agly doesn't get it from the ground
     # Place perfectly on the ground
     # Pause for a bit for it to move
     time.sleep(0.02)
-    startAGL = 1005.84 - 342.31 # m; initial elevation - ground elevation (converting to AGL)
+    # startAGL = 1005.84 - 342.31 # m; initial elevation - ground elevation (converting to AGL)
+    startAGL = 891.45 # elevation for a 3 degree glideslope
     curr_agly = client.getDREF("sim/flightmodel/position/y_agl")[0]
     curr_localy = client.getDREF("sim/flightmodel/position/local_y")[0]
     client.sendDREF("sim/flightmodel/position/local_y",
