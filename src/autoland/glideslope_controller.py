@@ -10,7 +10,7 @@ class GlideSlopeController:
     def __init__(self, client, gamma, h_thresh=GRANT_RWY4_TCH, des_u=50., dt=0.1):
         self._client   = client
         self._gamma    = gamma    # glide slope angle
-        self._h_thresh = h_thresh # height of runway threshold
+        self._h_thresh = h_thresh # height of runway threshold (m)
         self._des_u    = des_u # desired longitudinal velocity (m/s)
         self._dt       = dt
 
@@ -61,8 +61,8 @@ class GlideSlopeController:
 
         delta_r = self._psi_pid(err_psi) + self._y_pid(err_y)
         delta_a = self._phi_pid(err_phi)
-        rudder = -max(-27, min(delta_r, 27))/27
-        aileron = -max(-20, min(delta_a, 20))/20
+        rudder = max(-27, min(delta_r, 27))/27
+        aileron = max(-20, min(delta_a, 20))/20
 
         # longitudinal control
         err_u = self._des_u - u
@@ -81,6 +81,3 @@ class GlideSlopeController:
             elevator = max(elev, -15)/15
 
         return elevator, aileron, rudder, throttle
-
-
-        # then return
